@@ -1,10 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "layout.html" %}
 
-</body>
-</html>
+{% block content %}
+<section class="form-container">
+    <h2>Check Your Eligibility</h2>
+    <p>Tell us a bit about yourself so we can find your perfect membership.</p>
+
+    <form action="/calculate" method="POST" class="gym-form">
+        
+        <div class="input-group">
+            <label for="age">How old are you?</label>
+            <input type="number" id="age" name="age" required min="1" placeholder="Enter age">
+            <small>Note: You must be at least 16 to join.</small>
+        </div>
+
+        <div class="input-group">
+            <label>What are you looking for?</label>
+            <div class="checkbox-grid">
+                <label><input type="checkbox" name="pool"> Swimming Pool</label>
+                <label><input type="checkbox" name="classes"> Fitness Classes</label>
+                <label><input type="checkbox" name="massage"> Massage Therapy</label>
+                <label><input type="checkbox" name="physio"> Physiotherapy</label>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="status">Are you a student or young adult?</label>
+            <select name="status" id="status">
+                <option value="none">No</option>
+                <option value="student">Yes, I am a Student/Under 25</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-main">Calculate Best Price</button>
+    </form>
+</section>
+{% endblock %}
