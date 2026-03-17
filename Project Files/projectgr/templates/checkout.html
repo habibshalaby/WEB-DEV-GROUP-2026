@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Checkout — uGym & PowerZone{% endblock %}
+
+{% block extra_head %}
+<!-- ════════════════════════════════════════
+     INTERNAL CSS — checkout.html page-specific
+     ════════════════════════════════════════ -->
+<style>
+  /* Grid entrance animation */
+  .checkout-grid > * {
+    animation: panelIn 0.4s ease both;
+  }
+  .checkout-grid > *:first-child { animation-delay: 0.05s; }
+  .checkout-grid > *:last-child  { animation-delay: 0.15s; }
+
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Total row highlight */
+  .order-line.total-line .val {
+    animation: totalPop 0.5s 0.3s ease both;
+  }
+  @keyframes totalPop {
+    0%   { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+
+  /* Pay button hover shimmer */
+  .btn-pay {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-pay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.4s ease;
+  }
+  .btn-pay:hover::after { transform: translateX(100%); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- Progress bar -->
+  <div class="progress-bar">
+    <div class="step done"><div class="step-num">✓</div><span>Your Details</span></div>
+    <div class="step-line done"></div>
+    <div class="step done"><div class="step-num">✓</div><span>Membership</span></div>
+    <div class="step-line done"></div>
+    <div class="step active"><div class="step-num">3</div><span>Checkout</span></div>
+  </div>
+
+  <div class="s2-wrap">
+    <div class="checkout-grid">
+
+      <!-- LEFT: Order summary -->
+      <div>
+        <div class="order-card">
+          <div class="order-card-head">
+            <h3>Your Order</h3>
+            <span class="gym-tag {{ order.gym }}">
+              {% if order.gym == 'ugym' %}uGYM{% else %}POWERZONE{% endif %}
+            </span>
+          </div>
+          <div class="order-lines">
+
+            {% if order.gym_option %}
+            <div class="order-line">
+              <span class="lbl">
+                Gym Access —
+                {% if order.gym_option == 'super_off_peak' %}Super Off-Peak
+                {% elif order.gym_option == 'off_peak' %}Off-Peak
+                {% elif order.gym_option == 'anytime' %}Anytime
+                {% endif %}
+              </span>
+              <span class="val">£{{ "%.2f"|format(order.base_monthly) }}/mo</span>
+            </div>
+            {% endif %}
+
+            {% for addon in order.addons %}
+            <div class="order-line">
+              <span class="lbl">
+                Add-on —
+                {% if 'pool'  in addon %}Swimming Pool
+                {% elif 'class' in addon %}Classes
+                {% elif 'mass'  in addon %}Massage Therapy
+                {% elif 'phys'  in addon %}Physiotherapy
+                {% endif %}
+              </span>
+              <span class="val">included</span>
+            </div>
+            {% endfor %}
+
+            <div class="order-line">
+              <span class="lbl">Joining Fee (one-off)</span>
+              <span class="val">£{{ "%.2f"|format(order.joining_fee) }}</span>
+            </div>
+
+            {% if order.discount_amount > 0 %}
+            <div class="order-line discount">
+              <span class="lbl">Discount ({{ order.discount_rate_pct }}% — {{ user.member_type|replace('_',' ')|title }})</span>
+              <span class="val">−£{{ "%.2f"|format(order.discount_amount) }}</span>
+            </div>
+            {% endif %}
+
+            <div class="order-line">
+              <span class="lbl">Monthly Cost</span>
+              <span class="val">£{{ "%.2f"|format(order.final_monthly) }}/mo</span>
+            </div>
+
+            <div class="order-line total-line">
+              <span class="lbl">First Payment Total</span>
+              <span class="val">£{{ "%.2f"|format(order.total_first_month) }}</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Confirm & pay -->
+      <div>
+        <div class="pay-panel">
+          <h3>Confirm &amp; Pay</h3>
+          <p>Review your details then click Pay to activate your membership.</p>
+
+          <div class="member-summary">
+            <div class="row"><span class="k">Name</span><span class="v">{{ user.full_name }}</span></div>
+            <div class="row"><span class="k">Email</span><span class="v">{{ user.email }}</span></div>
+            <div class="row"><span class="k">Date of Birth</span><span class="v">{{ user.dob }}</span></div>
+            <div class="row"><span class="k">Member Type</span><span class="v">{{ user.member_type|replace('_',' ')|title }}</span></div>
+          </div>
+
+          <div class="pay-notice">
+            No real payment is taken. Clicking Pay creates your membership record and generates your unique Membership ID.
+          </div>
+
+          <form action="{{ url_for('checkout') }}" method="POST">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button type="submit" class="btn btn-primary btn-full btn-pay">
+                Pay £{{ "%.2f"|format(order.total_first_month) }} →
+              </button>
+              <a href="{{ url_for('membership') }}" class="btn btn-ghost btn-full" style="text-align:center">
+                ← Change Membership
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Bottom bar -->
+<div class="bottombar">
+  <div class="cost-preview">Total: £{{ "%.2f"|format(order.total_first_month) }}</div>
+  <div class="nav-arrows">
+    <a class="arr" href="{{ url_for('membership') }}">← Back</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- ════════════════════════════════════════
+     SCRIPT — checkout.html
+     ════════════════════════════════════════ -->
+<script>
+  /* ── 1. Confirm dialog before submitting payment ─────────────── */
+  var payForm = document.querySelector('form[action*="checkout"]');
+  if (payForm) {
+    payForm.addEventListener('submit', function(e) {
+      e.preventDefault();   /* Stop the form briefly */
+
+      var total   = '£{{ "%.2f"|format(order.total_first_month) }}';
+      var gym     = '{% if order.gym == "ugym" %}uGym{% else %}PowerZone{% endif %}';
+      var confirm = window.confirm(
+        'Confirm your membership?\n\n'
+        + 'Gym: '            + gym    + '\n'
+        + 'First payment: '  + total  + '\n\n'
+        + 'Click OK to activate your membership.'
+      );
+
+      if (confirm) {
+        /* Re-enable submit and actually submit */
+        var btn = payForm.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = false; }
+        payForm.submit();
+      }
+    });
+  }
+
+  /* ── 2. Countdown timer — adds urgency to checkout ───────────── */
+  var CHECKOUT_SECONDS = 10 * 60;  /* 10 minutes */
+  var remaining        = CHECKOUT_SECONDS;
+
+  var timerEl = document.createElement('div');
+  timerEl.style.cssText = 'font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim);letter-spacing:0.06em';
+  timerEl.textContent   = 'Session expires in 10:00';
+
+  var bottombar = document.querySelector('.bottombar .cost-preview');
+  if (bottombar && bottombar.parentNode) {
+    bottombar.parentNode.insertBefore(timerEl, bottombar.nextSibling);
+  }
+
+  var countdownInterval = setInterval(function() {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      timerEl.textContent = 'Session expired — please start again.';
+      timerEl.style.color = 'var(--power)';
+      return;
+    }
+    var mins = Math.floor(remaining / 60);
+    var secs = remaining % 60;
+    timerEl.textContent = 'Session expires in ' + mins + ':' + (secs < 10 ? '0' : '') + secs;
+
+    /* Turn red in the last 2 minutes */
+    if (remaining <= 120) {
+      timerEl.style.color = 'var(--power)';
+    }
+  }, 1000);
+
+  /* ── 3. Highlight the member summary row on hover ────────────── */
+  document.querySelectorAll('.member-summary .row').forEach(function(row) {
+    row.style.transition = 'background 0.15s ease';
+    row.addEventListener('mouseenter', function() {
+      this.style.background = 'var(--surface-3)';
+      this.style.borderRadius = '4px';
+    });
+    row.addEventListener('mouseleave', function() {
+      this.style.background = '';
+    });
+  });
+
+  /* ── 4. Copy order summary values on click ───────────────────── */
+  document.querySelectorAll('.order-line .val').forEach(function(val) {
+    val.title  = 'Click to copy';
+    val.style.cursor = 'pointer';
+    val.addEventListener('click', function() {
+      navigator.clipboard.writeText(this.textContent.trim()).then(function() {
+        val.style.color = '#5cb85c';
+        setTimeout(function() { val.style.color = ''; }, 1200);
+      });
+    });
+  });
+</script>
+{% endblock %}
