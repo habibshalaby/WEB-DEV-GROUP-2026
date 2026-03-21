@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}My Account — uGym & PowerZone{% endblock %}
+
+{% block extra_head %}
+<!-- ════════════════════════════════════════
+     INTERNAL CSS — dashboard.html (animations only)
+     All class styles are in static/css/style.css
+     ════════════════════════════════════════ -->
+<style>
+  /* Card entrance animation */
+  .dash-card { animation: cardIn 0.4s ease both; }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+
+  <!-- Welcome header -->
+  <div class="dash-welcome">
+    <h1>Welcome, {{ member.full_name }}</h1>
+    <p>Here's your membership overview.</p>
+  </div>
+
+  <div class="dash-card">
+
+    <!-- Membership ID card -->
+    <div class="dash-mid-card">
+      <div class="dash-mid-lbl">Your Membership ID</div>
+      <div class="dash-mid-val" id="midVal" title="Click to copy">{{ member.membership_id }}</div>
+    </div>
+
+    <!-- Membership details -->
+    <div class="detail-grid">
+
+      <div class="detail-row">
+        <span class="dk">Gym</span>
+        <span class="dv">
+          <span class="gym-badge {{ member.gym }}">
+            {% if member.gym == 'ugym' %}uGYM{% else %}POWERZONE{% endif %}
+          </span>
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <span class="dk">Membership Tier</span>
+        <span class="dv">
+          {% if member.gym_option %}
+            {{ member.gym_option|replace('_',' ')|title }}
+          {% else %}
+            Add-ons only
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <span class="dk">Member Type</span>
+        <span class="dv">{{ member.member_type|replace('_',' ')|title }}</span>
+      </div>
+
+      {% if member.addons %}
+      <div class="detail-row">
+        <span class="dk">Add-Ons</span>
+        <span class="dv">{{ member.addons|replace('_addon','')|replace('_',' ')|replace(',', ', ')|title }}</span>
+      </div>
+      {% endif %}
+
+      <div class="detail-row">
+        <span class="dk">Monthly Cost</span>
+        <span class="dv" style="color:var(--ugym)">£{{ "%.2f"|format(member.total_price) }}/mo</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="dk">Email</span>
+        <span class="dv">{{ member.email }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="dk">Date of Birth</span>
+        <span class="dv">{{ member.date_of_birth.strftime('%d %B %Y') }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="dk">Member Since</span>
+        <span class="dv">{{ member.joined_date.strftime('%d %B %Y') }}</span>
+      </div>
+
+    </div>
+
+    <!-- Actions -->
+    <div class="dash-actions">
+      <a href="{{ url_for('home') }}" class="btn btn-ghost">Back to Home</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost" style="border-color:rgba(255,63,63,0.3);color:var(--power)">Log Out</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Bottom bar -->
+<div class="bottombar">
+  <div class="cost-preview">My Account</div>
+  <div class="nav-arrows">
+    <a class="arr" href="{{ url_for('home') }}">← Home</a>
+    <a class="arr" href="{{ url_for('logout') }}" style="border-color:rgba(255,63,63,0.3);color:var(--power)">Logout</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- ════════════════════════════════════════
+     SCRIPT — dashboard.html
+     ════════════════════════════════════════ -->
+<script>
+  /* ── 1. Copy membership ID on click ── */
+  var midVal = document.getElementById('midVal');
+  if (midVal) {
+    midVal.addEventListener('click', function() {
+      var id = this.textContent.trim();
+      navigator.clipboard.writeText(id).then(function() {
+        midVal.style.color = '#5cb85c';
+        midVal.textContent = '✓ Copied!';
+        setTimeout(function() {
+          midVal.style.color = 'var(--ugym)';
+          midVal.textContent = id;
+        }, 1500);
+      });
+    });
+  }
+
+  /* ── 2. Highlight detail rows on hover ── */
+  document.querySelectorAll('.detail-row').forEach(function(row) {
+    row.style.transition = 'background 0.15s ease, padding-left 0.15s ease';
+    row.addEventListener('mouseenter', function() {
+      this.style.background   = 'var(--surface-2)';
+      this.style.paddingLeft  = '8px';
+      this.style.borderRadius = '4px';
+    });
+    row.addEventListener('mouseleave', function() {
+      this.style.background   = '';
+      this.style.paddingLeft  = '';
+    });
+  });
+</script>
+{% endblock %}
