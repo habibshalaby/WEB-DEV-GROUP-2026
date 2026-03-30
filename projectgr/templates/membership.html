@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+{% block title %}Select Membership — UPower{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Background — deadlift gym photo */
+  .page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(135deg, rgba(30,48,38,0.88) 0%, rgba(20,32,26,0.76) 50%, rgba(40,28,22,0.86) 100%),
+      url("{{ url_for('static', filename='images/gym-deadlift.png') }}") center center / cover no-repeat;
+    z-index: -1;
+  }
+
+  .col { animation: colIn 0.45s ease both; }
+  .col-ugym  { animation-delay: 0.05s; }
+  .col-power { animation-delay: 0.15s; }
+  @keyframes colIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .compare-bar.visible { animation: colIn 0.3s ease both; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <div class="progress-bar">
+    <div class="step done"><div class="step-num">✓</div><span>Your Details</span></div>
+    <div class="step-line done"></div>
+    <div class="step active"><div class="step-num">2</div><span>Membership</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-num">3</div><span>Checkout</span></div>
+  </div>
+
+  {% if errors %}
+    <ul class="error-list">
+      {% for error in errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if user.member_type != 'standard' %}
+    <div class="discount-banner">
+      {% if user.member_type == 'student' %}
+        You qualify for a <strong>&nbsp;20% student discount&nbsp;</strong> at uGym &nbsp;/&nbsp; <strong>15%</strong> at PowerZone (excludes massage &amp; physiotherapy).
+      {% elif user.member_type == 'young_adult' %}
+        You qualify for a <strong>&nbsp;20% young adult discount&nbsp;</strong> at uGym &nbsp;/&nbsp; <strong>15%</strong> at PowerZone (excludes massage &amp; physiotherapy).
+      {% elif user.member_type == 'pensioner' %}
+        You qualify for a <strong>&nbsp;15% pensioner discount&nbsp;</strong> at uGym &nbsp;/&nbsp; <strong>20%</strong> at PowerZone (excludes massage &amp; physiotherapy).
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- ═══ RECOMMENDATION BAR ═══ -->
+  <div class="compare-bar" id="compareBar">
+    <div class="compare-title">💡 Price comparison for your selections</div>
+    <div class="compare-row">
+      <div class="compare-card" id="compareUgym">
+        <span class="compare-gym">uGym</span>
+        <span>
+          <span class="compare-price" id="compareUgymPrice">—</span>
+          <span class="compare-badge" id="compareUgymBadge" style="display:none">BEST PRICE</span>
+        </span>
+      </div>
+      <div class="compare-card" id="comparePower">
+        <span class="compare-gym">PowerZone</span>
+        <span>
+          <span class="compare-price" id="comparePowerPrice">—</span>
+          <span class="compare-badge" id="comparePowerBadge" style="display:none">BEST PRICE</span>
+        </span>
+      </div>
+    </div>
+    <div class="compare-hint" id="compareHint"></div>
+  </div>
+
+  <form action="{{ url_for('membership') }}" method="POST" id="membershipForm" data-custom-submit="true">
+
+    <div class="s1-grid">
+
+      <!-- ── uGYM COLUMN ─────────────────────────── -->
+      <div class="col col-ugym">
+        <div class="col-name">UGym</div>
+        <div class="col-sub">Urban · Flexible · Affordable</div>
+        <span class="fee-pill" style="margin-top:8px;margin-bottom:4px;border-color:rgba(232,185,74,0.4);color:var(--ugym);background:rgba(232,185,74,0.07)">Joining fee: £{{ ugym_prices.joining_fee }} (one-off)</span>
+
+        <div class="sec">Gym Membership (optional)</div>
+        <div class="mem-list">
+          <div class="mem-row" data-gym="ugym" data-type="super-off-peak" data-price="{{ ugym_prices.super_off_peak }}" onclick="pickMem(this)">
+            <div class="mem-info"><div class="mem-name">Super Off-Peak</div><div class="mem-desc">10am–12pm &amp; 2pm–4pm only</div></div>
+            <div style="display:flex;align-items:center"><div class="mem-price">£{{ ugym_prices.super_off_peak }}<span style="font-size:12px;font-family:'Barlow'">/mo</span></div><div class="mem-dot"></div></div>
+          </div>
+          <div class="mem-row" data-gym="ugym" data-type="off-peak" data-price="{{ ugym_prices.off_peak }}" onclick="pickMem(this)">
+            <div class="mem-info"><div class="mem-name">Off-Peak</div><div class="mem-desc">12pm–2pm &amp; 8pm–11pm</div></div>
+            <div style="display:flex;align-items:center"><div class="mem-price">£{{ ugym_prices.off_peak }}<span style="font-size:12px;font-family:'Barlow'">/mo</span></div><div class="mem-dot"></div></div>
+          </div>
+          <div class="mem-row" data-gym="ugym" data-type="anytime" data-price="{{ ugym_prices.anytime }}" onclick="pickMem(this)">
+            <div class="mem-info"><div class="mem-name">Anytime</div><div class="mem-desc">Full unrestricted access</div></div>
+            <div style="display:flex;align-items:center"><div class="mem-price">£{{ ugym_prices.anytime }}<span style="font-size:12px;font-family:'Barlow'">/mo</span></div><div class="mem-dot"></div></div>
+          </div>
+        </div>
+
+        <div class="sec">Activities — <span id="ugymPriceMode" style="color:var(--ugym)">standalone prices</span></div>
+        <div class="addon-grid">
+          <div class="addon" data-gym="ugym" data-addon="pool" data-addon-price="{{ ugym_prices.pool_addon }}" data-standalone-price="{{ ugym_prices.pool_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">🏊 Swimming Pool</div>
+            <div class="addon-note">£{{ ugym_prices.pool_standalone }}/mo alone · +£{{ ugym_prices.pool_addon }}/mo with gym</div>
+            <div class="addon-price" data-gym="ugym" data-addon="pool">£{{ ugym_prices.pool_standalone }}/mo</div>
+          </div>
+          <div class="addon" data-gym="ugym" data-addon="classes" data-addon-price="{{ ugym_prices.classes_addon }}" data-standalone-price="{{ ugym_prices.classes_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">🤸 Classes</div>
+            <div class="addon-note">£{{ ugym_prices.classes_standalone }}/mo alone · +£{{ ugym_prices.classes_addon }}/mo with gym</div>
+            <div class="addon-price" data-gym="ugym" data-addon="classes">£{{ ugym_prices.classes_standalone }}/mo</div>
+          </div>
+          <div class="addon" data-gym="ugym" data-addon="massage" data-addon-price="{{ ugym_prices.massage_addon }}" data-standalone-price="{{ ugym_prices.massage_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">💆 Massage Therapy</div>
+            <div class="addon-note">£{{ ugym_prices.massage_standalone }}/mo alone · +£{{ ugym_prices.massage_addon }}/mo with gym · No discount</div>
+            <div class="addon-price" data-gym="ugym" data-addon="massage">£{{ ugym_prices.massage_standalone }}/mo</div>
+          </div>
+          <div class="addon" data-gym="ugym" data-addon="physio" data-addon-price="{{ ugym_prices.physio_addon }}" data-standalone-price="{{ ugym_prices.physio_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">🩺 Physiotherapy</div>
+            <div class="addon-note">£{{ ugym_prices.physio_standalone }}/mo alone · +£{{ ugym_prices.physio_addon }}/mo with gym · No discount</div>
+            <div class="addon-price" data-gym="ugym" data-addon="physio">£{{ ugym_prices.physio_standalone }}/mo</div>
+          </div>
+        </div>
+
+        <div class="sec">Discount Eligibility</div>
+        <div class="disc-row">
+          <button type="button" class="disc" data-gym="ugym" data-disc="Student" data-pct="20">Student / Young Adult 20%</button>
+          <button type="button" class="disc" data-gym="ugym" data-disc="Pensioner" data-pct="15">Pensioner (66+) 15%</button>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-full" id="confirmBtnUgym" onclick="confirmGym('ugym')" disabled style="margin-top:16px">Confirm uGym →</button>
+      </div>
+
+      <!-- ── POWERZONE COLUMN ────────────────────── -->
+      <div class="col col-power">
+        <div class="col-name">PowerZone</div>
+        <div class="col-sub">Performance · Elite · 24/7</div>
+        <span class="fee-pill" style="margin-top:8px;margin-bottom:4px;border-color:rgba(224,96,80,0.4);color:var(--power);background:rgba(224,96,80,0.07)">Joining fee: £{{ powerzone_prices.joining_fee }} (one-off)</span>
+
+        <div class="sec">Gym Membership (optional)</div>
+        <div class="mem-list">
+          <div class="mem-row" data-gym="power" data-type="super-off-peak" data-price="{{ powerzone_prices.super_off_peak }}" onclick="pickMem(this)">
+            <div class="mem-info"><div class="mem-name">Super Off-Peak</div><div class="mem-desc">10am–12pm &amp; 2pm–4pm only</div></div>
+            <div style="display:flex;align-items:center"><div class="mem-price">£{{ powerzone_prices.super_off_peak }}<span style="font-size:12px;font-family:'Barlow'">/mo</span></div><div class="mem-dot"></div></div>
+          </div>
+          <div class="mem-row" data-gym="power" data-type="off-peak" data-price="{{ powerzone_prices.off_peak }}" onclick="pickMem(this)">
+            <div class="mem-info"><div class="mem-name">Off-Peak</div><div class="mem-desc">12pm–2pm &amp; 8pm–11pm</div></div>
+            <div style="display:flex;align-items:center"><div class="mem-price">£{{ powerzone_prices.off_peak }}<span style="font-size:12px;font-family:'Barlow'">/mo</span></div><div class="mem-dot"></div></div>
+          </div>
+          <div class="mem-row" data-gym="power" data-type="anytime" data-price="{{ powerzone_prices.anytime }}" onclick="pickMem(this)">
+            <div class="mem-info"><div class="mem-name">Anytime</div><div class="mem-desc">24/7 full unrestricted access</div></div>
+            <div style="display:flex;align-items:center"><div class="mem-price">£{{ powerzone_prices.anytime }}<span style="font-size:12px;font-family:'Barlow'">/mo</span></div><div class="mem-dot"></div></div>
+          </div>
+        </div>
+
+        <div class="sec">Activities — <span id="powerPriceMode" style="color:var(--power)">standalone prices</span></div>
+        <div class="addon-grid">
+          <div class="addon" data-gym="power" data-addon="pool" data-addon-price="{{ powerzone_prices.pool_addon }}" data-standalone-price="{{ powerzone_prices.pool_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">🏊 25m Lap Pool</div>
+            <div class="addon-note">£{{ powerzone_prices.pool_standalone }}/mo alone · +£{{ powerzone_prices.pool_addon }}/mo with gym</div>
+            <div class="addon-price" data-gym="power" data-addon="pool">£{{ powerzone_prices.pool_standalone }}/mo</div>
+          </div>
+          <div class="addon" data-gym="power" data-addon="classes" data-addon-price="{{ powerzone_prices.classes_addon }}" data-standalone-price="{{ powerzone_prices.classes_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">🔥 HIIT Classes</div>
+            <div class="addon-note">£{{ powerzone_prices.classes_standalone }}/mo alone · FREE with gym membership</div>
+            <div class="addon-price" data-gym="power" data-addon="classes">£{{ powerzone_prices.classes_standalone }}/mo</div>
+          </div>
+          <div class="addon" data-gym="power" data-addon="massage" data-addon-price="{{ powerzone_prices.massage_addon }}" data-standalone-price="{{ powerzone_prices.massage_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">💆 Sports Massage</div>
+            <div class="addon-note">£{{ powerzone_prices.massage_standalone }}/mo alone · +£{{ powerzone_prices.massage_addon }}/mo with gym · No discount</div>
+            <div class="addon-price" data-gym="power" data-addon="massage">£{{ powerzone_prices.massage_standalone }}/mo</div>
+          </div>
+          <div class="addon" data-gym="power" data-addon="physio" data-addon-price="{{ powerzone_prices.physio_addon }}" data-standalone-price="{{ powerzone_prices.physio_standalone }}" onclick="toggleAddon(this)">
+            <div class="addon-name">🩺 Physiotherapy</div>
+            <div class="addon-note">£{{ powerzone_prices.physio_standalone }}/mo alone · +£{{ powerzone_prices.physio_addon }}/mo with gym · No discount</div>
+            <div class="addon-price" data-gym="power" data-addon="physio">£{{ powerzone_prices.physio_standalone }}/mo</div>
+          </div>
+        </div>
+
+        <div class="sec">Discount Eligibility</div>
+        <div class="disc-row">
+          <button type="button" class="disc" data-gym="power" data-disc="Student" data-pct="15">Student / Young Adult 15%</button>
+          <button type="button" class="disc" data-gym="power" data-disc="Pensioner" data-pct="20">Pensioner (66+) 20%</button>
+        </div>
+
+        <button type="button" class="btn btn-power btn-full" id="confirmBtnPower" onclick="confirmGym('power')" disabled style="margin-top:16px">Confirm PowerZone →</button>
+      </div>
+
+    </div>
+
+    <input type="hidden" name="gym_choice"  id="hiddenGym">
+    <input type="hidden" name="gym_option"  id="hiddenOption">
+    <input type="hidden" name="addons"      id="hiddenAddons">
+    <input type="hidden" name="discount_pct" id="hiddenDiscount" value="0">
+
+  </form>
+</div>
+
+<div class="bottombar">
+  <div class="cost-preview" id="preview">Select a membership to see your cost</div>
+  <div class="nav-arrows">
+    <a class="arr" href="{% if editing %}{{ url_for('member_dashboard') }}{% else %}{{ url_for('userinfo') }}{% endif %}">← Back</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* ════════════════════════════════════════════════════════════
+     Each column independent. Activities use STANDALONE price
+     when no gym tier selected, ADDON price when gym tier
+     is selected. Click a tier/addon again to deselect.
+     ════════════════════════════════════════════════════════════ */
+
+  var state = {
+    ugym:  { tier: null, addons: {} },
+    power: { tier: null, addons: {} }
+  };
+
+  /* Full pricing — standalone AND addon for each activity */
+  var PRICES = {
+    ugym: {
+      joining_fee: {{ ugym_prices.joining_fee }},
+      tiers: {
+        'super-off-peak': {{ ugym_prices.super_off_peak }},
+        'off-peak': {{ ugym_prices.off_peak }},
+        'anytime': {{ ugym_prices.anytime }}
+      },
+      addon: { pool: {{ ugym_prices.pool_addon }}, classes: {{ ugym_prices.classes_addon }}, massage: {{ ugym_prices.massage_addon }}, physio: {{ ugym_prices.physio_addon }} },
+      standalone: { pool: {{ ugym_prices.pool_standalone }}, classes: {{ ugym_prices.classes_standalone }}, massage: {{ ugym_prices.massage_standalone }}, physio: {{ ugym_prices.physio_standalone }} }
+    },
+    power: {
+      joining_fee: {{ powerzone_prices.joining_fee }},
+      tiers: {
+        'super-off-peak': {{ powerzone_prices.super_off_peak }},
+        'off-peak': {{ powerzone_prices.off_peak }},
+        'anytime': {{ powerzone_prices.anytime }}
+      },
+      addon: { pool: {{ powerzone_prices.pool_addon }}, classes: {{ powerzone_prices.classes_addon }}, massage: {{ powerzone_prices.massage_addon }}, physio: {{ powerzone_prices.physio_addon }} },
+      standalone: { pool: {{ powerzone_prices.pool_standalone }}, classes: {{ powerzone_prices.classes_standalone }}, massage: {{ powerzone_prices.massage_standalone }}, physio: {{ powerzone_prices.physio_standalone }} }
+    }
+  };
+
+  var memberType = '{{ user.member_type }}';
+  var DISC_RATES = {
+    ugym:  { student: 20, young_adult: 20, pensioner: 15, standard: 0 },
+    power: { student: 15, young_adult: 15, pensioner: 20, standard: 0 }
+  };
+  var NO_DISC = ['massage', 'physio'];
+
+  /* ── Calculate total for a gym ───────────────────────────── */
+  function calcTotal(gym) {
+    var s = state[gym];
+    var p = PRICES[gym];
+    var disc = DISC_RATES[gym][memberType] || 0;
+    var hasTier = !!s.tier;
+
+    var tierPrice    = hasTier ? (p.tiers[s.tier] || 0) : 0;
+    var discountable = tierPrice;
+    var noDiscount   = 0;
+
+    Object.keys(s.addons).forEach(function(addon) {
+      /* Use addon price if gym tier selected, standalone price if not */
+      var price = hasTier ? (p.addon[addon] || 0) : (p.standalone[addon] || 0);
+      if (NO_DISC.indexOf(addon) !== -1) {
+        noDiscount += price;
+      } else {
+        discountable += price;
+      }
+    });
+
+    var monthly = discountable * (1 - disc / 100) + noDiscount;
+    var first   = monthly + p.joining_fee;
+    return { monthly: monthly, first: first, joining: p.joining_fee, hasSelection: !!(s.tier || Object.keys(s.addons).length) };
+  }
+
+  /* ── Update activity price labels when tier changes ──────── */
+  function updateActivityPrices(gym) {
+    var hasTier = !!state[gym].tier;
+    var p = PRICES[gym];
+    var col = gym === 'ugym' ? '.col-ugym' : '.col-power';
+    var modeLabel = document.getElementById(gym === 'ugym' ? 'ugymPriceMode' : 'powerPriceMode');
+
+    if (hasTier) {
+      modeLabel.textContent = 'add-on prices (with gym)';
+    } else {
+      modeLabel.textContent = 'standalone prices';
+    }
+
+    /* Update each addon card's displayed price */
+    document.querySelectorAll(col + ' .addon').forEach(function(card) {
+      var addon = card.dataset.addon;
+      var priceEl = card.querySelector('.addon-price');
+      var addonPrice = p.addon[addon];
+      var standalonePrice = p.standalone[addon];
+
+      if (hasTier) {
+        if (addonPrice === 0) {
+          priceEl.textContent = 'FREE';
+        } else {
+          priceEl.textContent = '+£' + addonPrice.toFixed(addonPrice % 1 ? 2 : 0) + '/mo';
+        }
+      } else {
+        priceEl.textContent = '£' + standalonePrice.toFixed(standalonePrice % 1 ? 2 : 0) + '/mo';
+      }
+    });
+  }
+
+  /* ── 1. Pick / deselect a membership tier ────────────────── */
+  function pickMem(el) {
+    var gym  = el.dataset.gym;
+    var type = el.dataset.type;
+    var col  = gym === 'ugym' ? '.col-ugym' : '.col-power';
+
+    if (state[gym].tier === type) {
+      state[gym].tier = null;
+      el.classList.remove('selected');
+    } else {
+      document.querySelectorAll(col + ' .mem-row').forEach(function(r) {
+        r.classList.remove('selected');
+      });
+      el.classList.add('selected');
+      state[gym].tier = type;
+    }
+
+    updateActivityPrices(gym);
+    updateAll();
+  }
+
+  /* ── 2. Toggle an add-on (per-gym) ───────────────────────── */
+  function toggleAddon(el) {
+    var gym   = el.dataset.gym;
+    var addon = el.dataset.addon;
+
+    if (state[gym].addons[addon]) {
+      delete state[gym].addons[addon];
+      el.classList.remove('active');
+    } else {
+      state[gym].addons[addon] = true;
+      el.classList.add('active');
+    }
+    updateAll();
+  }
+
+  /* ── 3. Update everything ────────────────────────────────── */
+  function updateAll() {
+    updateComparison();
+    updatePreview();
+    updateConfirmButtons();
+  }
+
+  /* ── 4. Comparison bar ───────────────────────────────────── */
+  function updateComparison() {
+    var bar       = document.getElementById('compareBar');
+    var ugymCalc  = calcTotal('ugym');
+    var powerCalc = calcTotal('power');
+
+    if (!ugymCalc.hasSelection && !powerCalc.hasSelection) {
+      bar.classList.remove('visible');
+      return;
+    }
+
+    document.getElementById('compareUgymPrice').textContent  = ugymCalc.hasSelection  ? '£' + ugymCalc.first.toFixed(2)  : '—';
+    document.getElementById('comparePowerPrice').textContent = powerCalc.hasSelection ? '£' + powerCalc.first.toFixed(2) : '—';
+
+    var ugymCard   = document.getElementById('compareUgym');
+    var powerCard  = document.getElementById('comparePower');
+    var ugymBadge  = document.getElementById('compareUgymBadge');
+    var powerBadge = document.getElementById('comparePowerBadge');
+    var hint       = document.getElementById('compareHint');
+
+    ugymCard.classList.remove('cheapest');
+    powerCard.classList.remove('cheapest');
+    ugymBadge.style.display  = 'none';
+    powerBadge.style.display = 'none';
+
+    if (ugymCalc.hasSelection && powerCalc.hasSelection) {
+      if (ugymCalc.first < powerCalc.first) {
+        ugymCard.classList.add('cheapest');
+        ugymBadge.style.display = 'inline';
+        hint.innerHTML = '<strong>uGym is £' + (powerCalc.first - ugymCalc.first).toFixed(2) + ' cheaper</strong> — click "Confirm uGym" below, or keep PowerZone';
+      } else if (powerCalc.first < ugymCalc.first) {
+        powerCard.classList.add('cheapest');
+        powerBadge.style.display = 'inline';
+        hint.innerHTML = '<strong>PowerZone is £' + (ugymCalc.first - powerCalc.first).toFixed(2) + ' cheaper</strong> — click "Confirm PowerZone" below, or keep uGym';
+      } else {
+        hint.innerHTML = 'Both cost the same — pick whichever you prefer';
+      }
+    } else if (ugymCalc.hasSelection) {
+      hint.innerHTML = 'Select a plan in PowerZone too to compare prices';
+    } else {
+      hint.innerHTML = 'Select a plan in uGym too to compare prices';
+    }
+
+    bar.classList.add('visible');
+  }
+
+  /* ── 5. Bottom preview ───────────────────────────────────── */
+  function updatePreview() {
+    var preview    = document.getElementById('preview');
+    var ugymCalc   = calcTotal('ugym');
+    var powerCalc  = calcTotal('power');
+
+    if (!ugymCalc.hasSelection && !powerCalc.hasSelection) {
+      preview.textContent = 'Select a membership or activity to see your cost';
+      preview.style.color = '';
+      return;
+    }
+
+    var parts = [];
+    if (ugymCalc.hasSelection) {
+      var d = DISC_RATES.ugym[memberType] || 0;
+      var mode = state.ugym.tier ? '' : ' (standalone)';
+      parts.push('uGym: £' + ugymCalc.monthly.toFixed(2) + '/mo' + mode + (d ? ' after ' + d + '%' : '') + ' + £' + ugymCalc.joining + ' fee = £' + ugymCalc.first.toFixed(2));
+    }
+    if (powerCalc.hasSelection) {
+      var d = DISC_RATES.power[memberType] || 0;
+      var mode = state.power.tier ? '' : ' (standalone)';
+      parts.push('PZ: £' + powerCalc.monthly.toFixed(2) + '/mo' + mode + (d ? ' after ' + d + '%' : '') + ' + £' + powerCalc.joining + ' fee = £' + powerCalc.first.toFixed(2));
+    }
+    preview.textContent = parts.join('   |   ');
+    preview.style.color = 'var(--ugym)';
+  }
+
+  /* ── 6. Confirm buttons ──────────────────────────────────── */
+  function updateConfirmButtons() {
+    document.getElementById('confirmBtnUgym').disabled  = !calcTotal('ugym').hasSelection;
+    document.getElementById('confirmBtnPower').disabled = !calcTotal('power').hasSelection;
+  }
+
+  /* ── 7. Confirm a gym ────────────────────────────────────── */
+  function confirmGym(gym) {
+    var s = state[gym];
+    if (!s.tier && Object.keys(s.addons).length === 0) {
+      alert('Please select at least a tier or activity.');
+      return;
+    }
+
+    /* Use _addon keys if tier selected, _standalone if not */
+    var suffix = s.tier ? '_addon' : '_standalone';
+    var addonKeys = Object.keys(s.addons).map(function(k) { return k + suffix; }).join(',');
+
+    document.getElementById('hiddenGym').value      = gym === 'power' ? 'powerzone' : 'ugym';
+    document.getElementById('hiddenOption').value   = s.tier ? s.tier.replace(/-/g, '_') : '';
+    document.getElementById('hiddenAddons').value   = addonKeys;
+    document.getElementById('hiddenDiscount').value = DISC_RATES[gym][memberType] || 0;
+
+    document.getElementById('membershipForm').submit();
+  }
+
+  /* ── 8. Auto-mark discount badges ────────────────────────── */
+  if (memberType === 'student' || memberType === 'young_adult') {
+    document.querySelectorAll('.disc[data-disc="Student"]').forEach(function(b) {
+      b.classList.add('active'); b.style.pointerEvents = 'none'; b.style.opacity = '0.8';
+    });
+  } else if (memberType === 'pensioner') {
+    document.querySelectorAll('.disc[data-disc="Pensioner"]').forEach(function(b) {
+      b.classList.add('active'); b.style.pointerEvents = 'none'; b.style.opacity = '0.8';
+    });
+  }
+
+  /* ── 9. Back-nav fix ─────────────────────────────────────── */
+  window.addEventListener('pageshow', function() { updateConfirmButtons(); });
+</script>
+{% endblock %}
