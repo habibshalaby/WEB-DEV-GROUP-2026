@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% block title %}Your Details — UPower{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Page background — real gym photo with UPower color overlay */
+  .page-narrow {
+    position: relative;
+    min-height: calc(100vh - 54px);
+    padding-bottom: 60px;
+  }
+  .page-narrow::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(135deg, rgba(251, 251, 251, 0.88) 0%, rgba(20,32,26,0.75) 50%, rgba(169, 156, 156, 0.85) 100%),
+      url("{{ url_for('static', filename='images/gym-photo.png') }}") center center / cover no-repeat;
+    z-index: -1;
+  }
+  .form-card {
+    animation: cardIn 0.4s ease both;
+    background: rgba(30,48,38,0.92) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border) !important;
+  }
+  .progress-bar {
+    background: rgba(30,48,38,0.7);
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(6px);
+    margin-bottom: 20px;
+  }
+  .eligibility-intro {
+    background: rgba(30,48,38,0.85) !important;
+    backdrop-filter: blur(6px);
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .form-group input:focus,
+  .form-group select:focus {
+    animation: inputGlow 0.3s ease forwards;
+  }
+  @keyframes inputGlow {
+    from { box-shadow: none; }
+    to   { box-shadow: 0 0 0 3px rgba(61,232,160,0.08); }
+  }
+
+  /* Student toggle card */
+  .student-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    background: var(--surface-2);
+    border: 2px solid var(--border-mid);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    margin-top: 6px;
+  }
+  .student-toggle:hover { border-color: var(--accent); }
+  .student-toggle.active {
+    border-color: var(--accent);
+    background: rgba(61,232,160,0.05);
+  }
+  .student-toggle-info { display: flex; align-items: center; gap: 14px; }
+  .student-toggle-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--surface-3); display: flex;
+    align-items: center; justify-content: center; font-size: 1.3rem;
+    transition: background 0.2s ease;
+  }
+  .student-toggle.active .student-toggle-icon {
+    background: rgba(61,232,160,0.12);
+  }
+  .student-toggle-text { display: flex; flex-direction: column; gap: 2px; }
+  .student-toggle-title {
+    font-size: 0.9rem; font-weight: 700; color: var(--text);
+  }
+  .student-toggle-desc {
+    font-size: 0.75rem; color: var(--text-dim); line-height: 1.3;
+  }
+  .student-toggle.active .student-toggle-title { color: var(--accent); }
+  .toggle-switch {
+    width: 48px; height: 26px; border-radius: 13px;
+    background: var(--border-mid); position: relative;
+    transition: background 0.2s ease; flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--text-dim); transition: all 0.2s ease;
+  }
+  .student-toggle.active .toggle-switch {
+    background: var(--accent);
+  }
+  .student-toggle.active .toggle-switch::after {
+    left: 25px; background: #000;
+  }
+
+  /* Discount detection banner */
+  .discount-detected {
+    display: none;
+    padding: 14px 18px;
+    border-radius: var(--radius-md);
+    margin-top: 12px;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    animation: cardIn 0.3s ease both;
+  }
+  .discount-detected.visible { display: block; }
+  .discount-detected.eligible {
+    background: rgba(61,232,160,0.06);
+    border: 1px solid rgba(61,232,160,0.2);
+    color: var(--accent);
+  }
+  .discount-detected.standard {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+  }
+  .discount-detected.blocked {
+    background: rgba(224,96,80,0.05);
+    border: 1px solid rgba(224,96,80,0.2);
+    color: #f08080;
+  }
+  .discount-detected strong { font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+
+  <div class="progress-bar">
+    <div class="step active"><div class="step-num">1</div><span>Your Details</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-num">2</div><span>Membership</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-num">3</div><span>Checkout</span></div>
+  </div>
+
+  <div class="form-card">
+
+    <div class="form-header">
+      <h1>Check Your Eligibility</h1>
+      <p>Tell us a bit about yourself so we can find your perfect membership.</p>
+    </div>
+
+    <div class="eligibility-intro">
+      You must be <strong>at least 16</strong> to join. Students and young adults (under 25) receive
+      <strong>20% off</strong> at uGym or <strong>15% off</strong> at PowerZone.
+      Pensioners (over 66) receive <strong>15% off</strong> at uGym or <strong>20% off</strong> at PowerZone.
+      Discounts do not apply to massage or physiotherapy.
+    </div>
+
+    {% if errors %}
+      <ul class="error-list">
+        {% for error in errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div id="clientErrors" class="error-list" style="display:none"></div>
+
+    <form action="{{ url_for('userinfo') }}" method="POST" class="gym-form" id="userinfoForm" novalidate data-custom-submit="true">
+
+      <div class="form-group">
+        <label for="full_name">Full Name</label>
+        <input type="text" id="full_name" name="full_name"
+               placeholder="e.g. Jane Smith"
+               value="{{ form_data.get('full_name', '') }}">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email"
+               placeholder="you@example.com"
+               value="{{ form_data.get('email', '') }}">
+      </div>
+
+      <div class="form-group">
+        <label for="date_of_birth">Date of Birth</label>
+        <input type="date" id="date_of_birth" name="date_of_birth"
+               min="1900-01-01"
+               value="{{ form_data.get('date_of_birth', '') }}">
+        <!-- Auto-detected discount banner -->
+        <div class="discount-detected" id="discountBanner"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Are you a student?</label>
+        <div class="student-toggle" id="studentToggle" onclick="toggleStudent()">
+          <div class="student-toggle-info">
+            <div class="student-toggle-icon">🎓</div>
+            <div class="student-toggle-text">
+              <span class="student-toggle-title" id="studentTitle">No, I'm not a student</span>
+              <span class="student-toggle-desc" id="studentDesc">Toggle if you're enrolled at a school, college, or university</span>
+            </div>
+          </div>
+          <div class="toggle-switch"></div>
+        </div>
+        <input type="hidden" name="status" id="statusInput" value="{{ form_data.get('status', 'none') }}">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Create a Password</label>
+        <input type="password" id="password" name="password"
+               placeholder="Min. 6 characters" minlength="6">
+        <small>You'll use this with your email to log in and view your membership.</small>
+      </div>
+
+      <div class="form-footer">
+        <button type="submit" class="btn btn-primary btn-full">Continue to Memberships →</button>
+        <p>Already a member? <a href="{{ url_for('login') }}">Log in here</a></p>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var dobInput      = document.getElementById('date_of_birth');
+  var banner        = document.getElementById('discountBanner');
+  var studentToggle = document.getElementById('studentToggle');
+  var statusInput   = document.getElementById('statusInput');
+  var studentTitle  = document.getElementById('studentTitle');
+  var studentDesc   = document.getElementById('studentDesc');
+  var todayStr      = new Date().toISOString().split('T')[0];
+  var isStudent     = statusInput.value === 'student';
+
+  dobInput.setAttribute('max', todayStr);
+
+  /* ── Set initial student toggle state ───────────────────── */
+  if (isStudent) {
+    studentToggle.classList.add('active');
+    studentTitle.textContent = 'Yes, I am a student';
+    studentDesc.textContent  = '20% off at uGym · 15% off at PowerZone';
+  }
+
+  /* ── Student toggle ─────────────────────────────────────── */
+  function toggleStudent() {
+    isStudent = !isStudent;
+    statusInput.value = isStudent ? 'student' : 'none';
+
+    if (isStudent) {
+      studentToggle.classList.add('active');
+      studentTitle.textContent = 'Yes, I am a student';
+      studentDesc.textContent  = '20% off at uGym · 15% off at PowerZone';
+    } else {
+      studentToggle.classList.remove('active');
+      studentTitle.textContent = 'No, I\'m not a student';
+      studentDesc.textContent  = 'Toggle if you\'re enrolled at a school, college, or university';
+    }
+
+    /* Re-check discount with current DOB */
+    checkDiscount();
+  }
+
+  /* ── Auto-detect discount from DOB ──────────────────────── */
+  function calcAge() {
+    if (!dobInput.value) return null;
+    var dob   = new Date(dobInput.value);
+    var today = new Date();
+    if (isNaN(dob.getTime())) return null;
+    if (dob > today) return null;
+    var age = today.getFullYear() - dob.getFullYear();
+    var md  = today.getMonth() - dob.getMonth();
+    if (md < 0 || (md === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+  }
+
+  function checkDiscount() {
+    var age = calcAge();
+    if (age === null) {
+      banner.classList.remove('visible');
+      return;
+    }
+
+    banner.classList.add('visible');
+
+    if (age > 120) {
+      banner.className = 'discount-detected visible blocked';
+      banner.innerHTML = '✕ Please enter a valid date of birth.';
+      return;
+    }
+
+    if (age < 16) {
+      banner.className = 'discount-detected visible blocked';
+      banner.innerHTML = '✕ You must be at least 16 to join. You are ' + age + ' years old.';
+      return;
+    }
+
+    if (isStudent) {
+      banner.className = 'discount-detected visible eligible';
+      banner.innerHTML = '🎓 <strong>Student discount applies!</strong> Age ' + age + ' — 20% off at uGym · 15% off at PowerZone (excl. massage & physio)';
+    } else if (age < 25) {
+      banner.className = 'discount-detected visible eligible';
+      banner.innerHTML = '✦ <strong>Young adult discount detected!</strong> Age ' + age + ' (under 25) — 20% off at uGym · 15% off at PowerZone (excl. massage & physio)';
+    } else if (age > 66) {
+      banner.className = 'discount-detected visible eligible';
+      banner.innerHTML = '✦ <strong>Pensioner discount detected!</strong> Age ' + age + ' (over 66) — 15% off at uGym · 20% off at PowerZone (excl. massage & physio)';
+    } else {
+      banner.className = 'discount-detected visible standard';
+      banner.innerHTML = '✓ Age ' + age + ' — Standard membership. No automatic discount applies.';
+    }
+  }
+
+  /* Listen for DOB changes */
+  dobInput.addEventListener('change', checkDiscount);
+  dobInput.addEventListener('input', checkDiscount);
+
+  /* Run on page load if DOB is pre-filled */
+  checkDiscount();
+
+  /* ── Form validation on submit ──────────────────────────── */
+  var form      = document.getElementById('userinfoForm');
+  var errorsDiv = document.getElementById('clientErrors');
+
+  form.addEventListener('submit', function(e) {
+    var errors = [];
+
+    var name = document.getElementById('full_name').value.trim();
+    if (!name) {
+      errors.push('Full name is required.');
+    } else if (/\d/.test(name)) {
+      errors.push('Name cannot contain numbers.');
+    }
+
+    var email = document.getElementById('email').value.trim();
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      errors.push('A valid email address is required.');
+    }
+
+    var dobVal = dobInput.value;
+    if (!dobVal) {
+      errors.push('Date of birth is required.');
+    } else {
+      var age = calcAge();
+      if (age === null) {
+        errors.push('Please enter a valid date of birth.');
+      } else if (new Date(dobVal) > new Date()) {
+        errors.push('Date of birth cannot be in the future.');
+      } else if (age > 120) {
+        errors.push('Please enter a valid date of birth.');
+      } else if (age < 16) {
+        errors.push('You must be at least 16 to join. You are currently ' + age + ' years old.');
+      }
+    }
+
+    var password = document.getElementById('password').value;
+    if (!password || password.length < 6) {
+      errors.push('Password must be at least 6 characters.');
+    }
+
+    if (errors.length > 0) {
+      e.preventDefault();
+      errorsDiv.style.display = 'block';
+      errorsDiv.innerHTML = errors.map(function(err) {
+        return '<li>' + err + '</li>';
+      }).join('');
+      errorsDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      errorsDiv.style.display = 'none';
+    }
+  });
+</script>
+{% endblock %}

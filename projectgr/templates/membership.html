@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Select Membership — UPower{% endblock %}
+{% block extra_head %}
+<style>
+.page::before{content:'';position:fixed;inset:0;background:linear-gradient(135deg,rgba(30,48,38,.88) 0%,rgba(20,32,26,.76) 50%,rgba(40,28,22,.86) 100%),url("{{ url_for('static', filename='images/gym-deadlift.png') }}") center/cover no-repeat;z-index:-1}
+.pref-card{background:rgba(30,48,38,.92);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 24px;margin-bottom:20px;animation:ci .4s ease both}
+@keyframes ci{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.pref-title{font-family:var(--font-display);font-size:1.4rem;letter-spacing:.05em;color:var(--text);margin-bottom:4px}
+.pref-sub{font-size:.85rem;color:var(--text-dim);margin-bottom:22px}
+.pref-label{font-family:var(--font-display);font-size:.9rem;letter-spacing:.06em;color:var(--text-sub);margin-bottom:10px;margin-top:18px}
+.pref-label:first-of-type{margin-top:0}
+.tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tier-card{background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-md);padding:16px 14px;cursor:pointer;transition:border-color .2s,background .2s,transform .15s;text-align:center;position:relative}
+.tier-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.tier-card.selected{border-color:var(--accent);background:rgba(61,232,160,.08)}
+.tier-card.selected::after{content:'✓';position:absolute;top:6px;right:10px;font-size:.85rem;color:var(--accent);font-weight:700}
+.tier-name{font-family:var(--font-display);font-size:1rem;letter-spacing:.04em;color:var(--text);margin-bottom:4px}
+.tier-desc{font-size:.72rem;color:var(--text-dim)}
+.tier-skip{grid-column:1/-1;padding:10px;text-align:center;font-size:.8rem;color:var(--text-dim);background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .2s}
+.tier-skip:hover{border-color:var(--text-dim)}
+.tier-skip.selected{border-color:var(--accent);color:var(--accent)}
+.atg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.at{display:flex;align-items:center;gap:12px;background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;cursor:pointer;transition:border-color .2s,background .2s}
+.at:hover{border-color:var(--accent)}
+.at.selected{border-color:var(--accent);background:rgba(61,232,160,.08)}
+.at-icon{font-size:1.5rem;flex-shrink:0}
+.at-info{flex:1}
+.at-name{font-family:var(--font-display);font-size:.95rem;letter-spacing:.03em;color:var(--text)}
+.at-note{font-size:.72rem;color:var(--text-dim);margin-top:2px}
+.at-chk{width:22px;height:22px;border:2px solid var(--border-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s,border-color .2s;font-size:.7rem;color:transparent}
+.at.selected .at-chk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.rp{background:rgba(30,48,38,.92);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 24px;margin-top:20px;display:none;animation:ci .35s ease both}
+.rp.visible{display:block}
+.rp-title{font-family:var(--font-display);font-size:1.2rem;letter-spacing:.05em;color:var(--accent);margin-bottom:16px}
+.rp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.rc{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-md);padding:20px;position:relative;transition:border-color .3s,transform .2s;cursor:pointer}
+.rc:hover{transform:translateY(-2px)}
+.rc.best{border-color:var(--accent);box-shadow:0 0 20px rgba(61,232,160,.1)}
+.rc-badge{position:absolute;top:-10px;right:14px;background:var(--accent);color:var(--bg);font-family:var(--font-mono);font-size:.65rem;font-weight:800;letter-spacing:.08em;padding:3px 10px;border-radius:20px;display:none}
+.rc.best .rc-badge{display:block}
+.rc-gym{font-family:var(--font-display);font-size:1.3rem;letter-spacing:.05em;margin-bottom:12px}
+.rc.ug .rc-gym{color:var(--ugym)}
+.rc.pz .rc-gym{color:var(--power)}
+.rl{display:flex;justify-content:space-between;padding:5px 0;font-size:.84rem;border-bottom:1px solid var(--border)}
+.rl:last-child{border-bottom:none}
+.rl-l{color:var(--text-sub)}
+.rl-v{font-family:var(--font-mono);color:var(--text);font-weight:600}
+.rt{margin-top:12px;padding-top:10px;border-top:2px solid var(--border);display:flex;justify-content:space-between;font-size:1rem}
+.rt-l{color:var(--text);font-weight:700}
+.rt-v{font-family:var(--font-mono);font-weight:800;font-size:1.1rem}
+.rc.ug .rt-v{color:var(--ugym)}
+.rc.pz .rt-v{color:var(--power)}
+.rc.best .rt-v{color:var(--accent)}
+.rp-hint{text-align:center;font-size:.82rem;color:var(--text-dim);margin-bottom:16px}
+.rp-hint strong{color:var(--accent)}
+.rp-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-ug{background:var(--ugym);color:var(--bg);font-weight:800;padding:14px;border:none;border-radius:var(--radius-md);cursor:pointer;font-size:.88rem;font-family:var(--font-display);letter-spacing:.08em;text-transform:uppercase;transition:all .2s}
+.btn-ug:hover{background:var(--ugym-dark);transform:translateY(-1px)}
+.btn-pz{background:var(--power);color:#fff;font-weight:800;padding:14px;border:none;border-radius:var(--radius-md);cursor:pointer;font-size:.88rem;font-family:var(--font-display);letter-spacing:.08em;text-transform:uppercase;transition:all .2s}
+.btn-pz:hover{background:var(--power-dark);transform:translateY(-1px)}
+.ns{text-align:center;color:var(--text-dim);font-size:.85rem;padding:30px 0}
+@media(max-width:600px){.tier-grid,.atg,.rp-grid,.rp-btns{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page">
+<div class="progress-bar">
+<div class="step done"><div class="step-num">✓</div><span>Your Details</span></div>
+<div class="step-line done"></div>
+<div class="step active"><div class="step-num">2</div><span>Membership</span></div>
+<div class="step-line"></div>
+<div class="step"><div class="step-num">3</div><span>Checkout</span></div>
+</div>
+{% if errors %}<ul class="error-list">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+{% if user.member_type != 'standard' %}
+<div class="discount-banner">
+{% if user.member_type == 'student' %}🎓 <strong>Student discount!</strong> 20% at uGym · 15% at PowerZone (excl. massage &amp; physio)
+{% elif user.member_type == 'young_adult' %}✦ <strong>Young adult discount!</strong> 20% at uGym · 15% at PowerZone (excl. massage &amp; physio)
+{% elif user.member_type == 'pensioner' %}✦ <strong>Pensioner discount!</strong> 15% at uGym · 20% at PowerZone (excl. massage &amp; physio){% endif %}
+</div>{% endif %}
+
+<div class="pref-card">
+<div class="pref-title">What are you looking for?</div>
+<div class="pref-sub">Pick your preferred gym access and any activities — we'll find you the best deal</div>
+<div class="pref-label">GYM ACCESS TIER</div>
+<div class="tier-grid">
+<div class="tier-card" data-tier="super_off_peak" onclick="pickTier(this)"><div class="tier-name">Super Off-Peak</div><div class="tier-desc">10am–12pm &amp; 2pm–4pm only</div></div>
+<div class="tier-card" data-tier="off_peak" onclick="pickTier(this)"><div class="tier-name">Off-Peak</div><div class="tier-desc">12pm–2pm &amp; 8pm–11pm</div></div>
+<div class="tier-card" data-tier="anytime" onclick="pickTier(this)"><div class="tier-name">Anytime</div><div class="tier-desc">Full unrestricted access 24/7</div></div>
+<div class="tier-skip" data-tier="" onclick="pickTier(this)">No gym access — activities only</div>
+</div>
+<div class="pref-label">ACTIVITIES YOU'RE INTERESTED IN</div>
+<div class="atg">
+<div class="at" data-activity="pool" onclick="toggleAct(this)"><span class="at-icon">🏊</span><div class="at-info"><div class="at-name">Swimming Pool</div><div class="at-note">Lap lanes &amp; leisure swimming</div></div><div class="at-chk">✓</div></div>
+<div class="at" data-activity="classes" onclick="toggleAct(this)"><span class="at-icon">🤸</span><div class="at-info"><div class="at-name">Fitness Classes</div><div class="at-note">HIIT, yoga, spin &amp; more</div></div><div class="at-chk">✓</div></div>
+<div class="at" data-activity="massage" onclick="toggleAct(this)"><span class="at-icon">💆</span><div class="at-info"><div class="at-name">Massage Therapy</div><div class="at-note">Sports &amp; recovery · No discount</div></div><div class="at-chk">✓</div></div>
+<div class="at" data-activity="physio" onclick="toggleAct(this)"><span class="at-icon">🩺</span><div class="at-info"><div class="at-name">Physiotherapy</div><div class="at-note">Specialist rehab · No discount</div></div><div class="at-chk">✓</div></div>
+</div>
+</div>
+
+<div class="rp" id="rp">
+<div class="rp-title">💡 Our Recommendation</div>
+<div class="rp-grid">
+<div class="rc ug" id="rcU"><div class="rc-badge">BEST PRICE</div><div class="rc-gym">uGym</div><div id="rdU"></div><div class="rt"><span class="rt-l">First month</span><span class="rt-v" id="rtU">—</span></div></div>
+<div class="rc pz" id="rcP"><div class="rc-badge">BEST PRICE</div><div class="rc-gym">PowerZone</div><div id="rdP"></div><div class="rt"><span class="rt-l">First month</span><span class="rt-v" id="rtP">—</span></div></div>
+</div>
+<div class="rp-hint" id="rpH"></div>
+<div class="rp-btns">
+<button type="button" class="btn-ug" onclick="confirmGym('ugym')">Join uGym →</button>
+<button type="button" class="btn-pz" onclick="confirmGym('powerzone')">Join PowerZone →</button>
+</div>
+</div>
+<div class="ns" id="nsMsg">Select a tier or activity above to see your price comparison</div>
+
+<form id="mForm" action="{{ url_for('membership') }}" method="POST" data-custom-submit="true">
+<input type="hidden" name="gym_choice" id="hG">
+<input type="hidden" name="gym_option" id="hO">
+<input type="hidden" name="addons" id="hA">
+<input type="hidden" name="discount_pct" id="hD" value="0">
+</form>
+</div>
+
+<div class="bottombar">
+<div class="cost-preview" id="preview">Select a membership to see your cost</div>
+<div class="nav-arrows">
+<a class="arr" href="{% if editing %}{{ url_for('member_dashboard') }}{% else %}{{ url_for('userinfo') }}{% endif %}">← Back</a>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var tier=null,acts={};
+var P={ugym:{j:{{ ugym_prices.joining_fee }},t:{super_off_peak:{{ ugym_prices.super_off_peak }},off_peak:{{ ugym_prices.off_peak }},anytime:{{ ugym_prices.anytime }}},a:{pool:{{ ugym_prices.pool_addon }},classes:{{ ugym_prices.classes_addon }},massage:{{ ugym_prices.massage_addon }},physio:{{ ugym_prices.physio_addon }}},s:{pool:{{ ugym_prices.pool_standalone }},classes:{{ ugym_prices.classes_standalone }},massage:{{ ugym_prices.massage_standalone }},physio:{{ ugym_prices.physio_standalone }}}},powerzone:{j:{{ powerzone_prices.joining_fee }},t:{super_off_peak:{{ powerzone_prices.super_off_peak }},off_peak:{{ powerzone_prices.off_peak }},anytime:{{ powerzone_prices.anytime }}},a:{pool:{{ powerzone_prices.pool_addon }},classes:{{ powerzone_prices.classes_addon }},massage:{{ powerzone_prices.massage_addon }},physio:{{ powerzone_prices.physio_addon }}},s:{pool:{{ powerzone_prices.pool_standalone }},classes:{{ powerzone_prices.classes_standalone }},massage:{{ powerzone_prices.massage_standalone }},physio:{{ powerzone_prices.physio_standalone }}}}};
+var mt='{{ user.member_type }}';
+var DR={ugym:{student:20,young_adult:20,pensioner:15,standard:0},powerzone:{student:15,young_adult:15,pensioner:20,standard:0}};
+var ND=['massage','physio'];
+
+function pickTier(el){
+var t=el.dataset.tier;
+document.querySelectorAll('.tier-card,.tier-skip').forEach(function(c){c.classList.remove('selected')});
+if(t===''){if(tier===null)return;tier=null;el.classList.add('selected')}
+else{if(tier===t){tier=null}else{tier=t;el.classList.add('selected')}}
+upd();
+}
+function toggleAct(el){
+var a=el.dataset.activity;
+if(acts[a]){delete acts[a];el.classList.remove('selected')}
+else{acts[a]=true;el.classList.add('selected')}
+upd();
+}
+function calc(g){
+var p=P[g],d=(DR[g][mt]||0)/100,ht=!!tier;
+var tp=ht?(p.t[tier]||0):0,dc=tp,nd=0;
+Object.keys(acts).forEach(function(a){
+var pr=ht?(p.a[a]||0):(p.s[a]||0);
+if(ND.indexOf(a)!==-1)nd+=pr;else dc+=pr;
+});
+var da=Math.round(dc*d*100)/100,mo=Math.round((dc-da+nd)*100)/100,fi=Math.round((mo+p.j)*100)/100;
+return{tp:tp,da:da,dp:Math.round(d*100),mo:mo,j:p.j,fi:fi,ht:ht,p:p};
+}
+function det(c,g){
+var h='';
+if(c.ht){var n=tier.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()});
+h+='<div class="rl"><span class="rl-l">'+n+'</span><span class="rl-v">£'+c.tp.toFixed(2)+'/mo</span></div>';}
+Object.keys(acts).forEach(function(a){
+var n=a.charAt(0).toUpperCase()+a.slice(1);if(a==='physio')n='Physiotherapy';
+var pr=c.ht?(c.p.a[a]||0):(c.p.s[a]||0);var sf=c.ht?' (add-on)':' (standalone)';
+if(pr===0)h+='<div class="rl"><span class="rl-l">'+n+sf+'</span><span class="rl-v" style="color:var(--accent)">FREE</span></div>';
+else h+='<div class="rl"><span class="rl-l">'+n+sf+'</span><span class="rl-v">£'+pr.toFixed(2)+'/mo</span></div>';
+});
+if(c.dp>0&&c.da>0)h+='<div class="rl"><span class="rl-l">Discount ('+c.dp+'%)</span><span class="rl-v" style="color:var(--accent)">-£'+c.da.toFixed(2)+'</span></div>';
+h+='<div class="rl"><span class="rl-l">Joining fee (one-off)</span><span class="rl-v">£'+c.j.toFixed(2)+'</span></div>';
+return h;
+}
+function upd(){
+var has=tier||Object.keys(acts).length>0;
+var rp=document.getElementById('rp'),ns=document.getElementById('nsMsg'),pv=document.getElementById('preview');
+if(!has){rp.classList.remove('visible');ns.style.display='block';pv.textContent='Select a tier or activity to see your cost';return;}
+ns.style.display='none';rp.classList.add('visible');
+var u=calc('ugym'),p=calc('powerzone');
+document.getElementById('rdU').innerHTML=det(u,'ugym');
+document.getElementById('rdP').innerHTML=det(p,'powerzone');
+document.getElementById('rtU').textContent='£'+u.fi.toFixed(2);
+document.getElementById('rtP').textContent='£'+p.fi.toFixed(2);
+var cu=document.getElementById('rcU'),cp=document.getElementById('rcP'),h=document.getElementById('rpH');
+cu.classList.remove('best');cp.classList.remove('best');
+if(u.fi<p.fi){cu.classList.add('best');h.innerHTML='<strong>uGym saves you £'+(p.fi-u.fi).toFixed(2)+'</strong> for the same benefits';}
+else if(p.fi<u.fi){cp.classList.add('best');h.innerHTML='<strong>PowerZone saves you £'+(u.fi-p.fi).toFixed(2)+'</strong> for the same benefits';}
+else h.innerHTML='Both gyms cost the same — pick whichever you prefer';
+pv.textContent='uGym: £'+u.mo.toFixed(2)+'/mo + £'+u.j+' fee = £'+u.fi.toFixed(2)+'   |   PZ: £'+p.mo.toFixed(2)+'/mo + £'+p.j+' fee = £'+p.fi.toFixed(2);
+}
+function confirmGym(g){
+if(!tier&&Object.keys(acts).length===0){alert('Please select a tier or activity first.');return;}
+var sf=tier?'_addon':'_standalone';
+var ak=Object.keys(acts).map(function(a){return a+sf}).join(',');
+document.getElementById('hG').value=g;
+document.getElementById('hO').value=tier?tier:'';
+document.getElementById('hA').value=ak;
+document.getElementById('hD').value=DR[g][mt]||0;
+document.getElementById('mForm').submit();
+}
+window.addEventListener('pageshow',function(){upd()});
+</script>
+{% endblock %}
